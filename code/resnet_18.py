@@ -141,11 +141,11 @@ def calculate_accuracy(loader, model, device):
 
 
 def train_model(model, train_loader, val_loader, device, num_epochs=100, early_stopping_patience=5):
-    labels = [label for _, label in train_loader.dataset]
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-    class_weights = torch.tensor(class_weights, dtype=torch.float, device=device)
+    # labels = [label for _, label in train_loader.dataset]
+    # class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+    # class_weights = torch.tensor(class_weights, dtype=torch.float, device=device)
 
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = nn.CrossEntropyLoss()
     # 冻结 layer1 和 layer2
     for name, param in model.named_parameters():
         param.requires_grad = True
@@ -181,7 +181,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
         if val_accuracy > best_val_accuracy:
             best_val_accuracy = val_accuracy
             # 保存当前最好的模型状态
-            torch.save(model.state_dict(), '../model/best_resnet18_3.pth')
+            torch.save(model.state_dict(), '../model/best_resnet18_4.pth')
             patience_counter = 0
 
         else:
@@ -244,7 +244,7 @@ def main():
     trained_model = train_model(model, train_loader, val_loader, device)
 
     # 保存模型的状态字典
-    torch.save(trained_model.state_dict(), '../model/resnet18_3.pth')
+    torch.save(trained_model.state_dict(), '../model/resnet18_4.pth')
 
     # 使用此函数进行预测和绘图
     predict_and_plot_examples(model, dataset, device)
