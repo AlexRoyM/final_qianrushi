@@ -181,7 +181,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
         if val_accuracy > best_val_accuracy:
             best_val_accuracy = val_accuracy
             # 保存当前最好的模型状态
-            torch.save(model.state_dict(), '../model/best_resnet18.pth')
+            torch.save(model.state_dict(), '../model/best_resnet18_3.pth')
             patience_counter = 0
 
         else:

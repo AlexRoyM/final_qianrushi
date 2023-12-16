@@ -63,13 +63,12 @@ def predict_image(image_data, model):
 
 def show_image_with_prediction(image, prediction):
     # 转换张量格式以适应matplotlib
-    image = image.squeeze(0)  # 移除批次维度
-    image = image.numpy()  # 转换为numpy数组
-    plt.imshow(image, cmap='gray')  # 使用灰度色彩映射
-
-    plt.imshow(image)
+    image = image.squeeze(0).numpy()  # 移除批次维度并转换为numpy数组
+    plt.imshow(image.squeeze(), cmap='gray')  # 使用灰度色彩映射
     plt.title(f"Predicted: {prediction}")
     plt.show()
+
+
 
 
 def save_image(image_data, file_name):
@@ -106,7 +105,7 @@ def main():
 
             prediction, image = predict_image(image_data, model)
             print(f"Predicted: {prediction}")
-            # show_image_with_prediction(image, prediction)
+            show_image_with_prediction(image, prediction)
 
             tcp_server.conn.send(str(send_char).encode())
             print(f"{i} times Sent '{send_char}' to ESP32.")
