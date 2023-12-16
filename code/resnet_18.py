@@ -94,36 +94,28 @@ class GestureCNN(nn.Module):
         self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         # 添加Dropout层
-        self.dropout1 = nn.Dropout(0.5)
-        self.dropout2 = nn.Dropout(0.5)
-        self.dropout3 = nn.Dropout(0.5)
-        self.dropout4 = nn.Dropout(0.5)
-        self.dropout5 = nn.Dropout(0.5)
+        # 仅在最后两个ResNet block之后添加Dropout层
+        self.model.layer3 = nn.Sequential(self.model.layer3, nn.Dropout(0.5))
+        self.model.layer4 = nn.Sequential(self.model.layer4, nn.Dropout(0.5))
 
         # 替换最后的全连接层以适应新的分类任务
         self.model.fc = nn.Linear(num_ftrs, num_classes)
 
     def forward(self, x):
-        # 通过ResNet模型，不包括最后的全连接层
         x = self.model.conv1(x)
-        x = self.dropout1(x)  # 第一个Dropout层
         x = self.model.bn1(x)
         x = self.model.relu(x)
         x = self.model.maxpool(x)
 
-        x = self.dropout2(self.model.layer1(x))  # 在layer1后添加Dropout
-        x = self.dropout3(self.model.layer2(x))  # 在layer2后添加Dropout
-        x = self.model.layer3(x)
-        x = self.dropout4(self.model.layer4(x))
+        x = self.model.layer1(x)  # 保持layer1
+        x = self.model.layer2(x)  # 保持layer2
+        x = self.model.layer3(x)  # Dropout在layer3后
+        x = self.model.layer4(x)  # Dropout在layer4后
 
         x = self.model.avgpool(x)
         x = torch.flatten(x, 1)
-
-        # 应用Dropout
-        x = self.dropout5(x)
-
-        # 通过修改后的全连接层
-        return self.model.fc(x)
+        x = self.model.fc(x)  # 最后的全连接层
+        return x
 
 
 def calculate_accuracy(loader, model, device):
@@ -153,7 +145,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
         #     param.requires_grad = False
         # else:
         #     param.requires_grad = True
-    optimizer = optim.Adam(model.parameters(), lr=0.00003, weight_decay=0.01)  # 添加 weight_decay 参数
+    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.001)  # 添加 weight_decay 参数
     best_val_accuracy = 0
     patience_counter = 0
 
@@ -235,8 +227,8 @@ def main():
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = GestureCNN().to(device)
