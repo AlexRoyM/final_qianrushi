@@ -80,7 +80,7 @@ def save_image(image_data, file_name):
 def main():
     # 加载模型
     model = resnet_18.GestureCNN()
-    model.load_state_dict(torch.load('../model/resnet18_1.pth'))
+    model.load_state_dict(torch.load('../model/resnet18.pth'))
     model.eval()  # 设置为评估模式
 
     tcp_server = TCPServer(TCP_IP, TCP_PORT)

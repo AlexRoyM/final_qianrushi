@@ -153,7 +153,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
         #     param.requires_grad = False
         # else:
         #     param.requires_grad = True
-    optimizer = optim.Adam(model.parameters(), lr=0.00005, weight_decay=0.01)  # 添加 weight_decay 参数
+    optimizer = optim.Adam(model.parameters(), lr=0.00003, weight_decay=0.01)  # 添加 weight_decay 参数
     best_val_accuracy = 0
     patience_counter = 0
 
@@ -167,6 +167,10 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+        train_accuracy = calculate_accuracy(train_loader, model, device)
+        train_precision, train_recall, train_f1 = calculate_metrics(train_loader, model, device)
+        print(
+            f'Epoch {epoch + 1}/{num_epochs}, Train Accuracy: {train_accuracy}%, Train Precision: {train_precision}, Train Recall: {train_recall}, Train F1 Score: {train_f1}')
 
         val_accuracy = calculate_accuracy(val_loader, model, device)
         precision, recall, f1 = calculate_metrics(val_loader, model, device)
@@ -176,7 +180,10 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
         # 早停逻辑
         if val_accuracy > best_val_accuracy:
             best_val_accuracy = val_accuracy
+            # 保存当前最好的模型状态
+            torch.save(model.state_dict(), '../model/best_resnet18.pth')
             patience_counter = 0
+
         else:
             patience_counter += 1
             if patience_counter >= early_stopping_patience:
@@ -216,8 +223,10 @@ def main():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(),  # 新增随机水平翻转
+        transforms.RandomVerticalFlip(),  # 新增随机垂直翻转
         transforms.RandomRotation(10),  # 新增随机旋转
         transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
+        transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),  # 新增高斯模糊
         transforms.Lambda(add_noise),
         transforms.ToTensor()
     ])
@@ -235,7 +244,7 @@ def main():
     trained_model = train_model(model, train_loader, val_loader, device)
 
     # 保存模型的状态字典
-    torch.save(trained_model.state_dict(), '../model/resnet18_2.pth')
+    torch.save(trained_model.state_dict(), '../model/resnet18_3.pth')
 
     # 使用此函数进行预测和绘图
     predict_and_plot_examples(model, dataset, device)
