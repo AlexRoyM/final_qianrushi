@@ -14,8 +14,26 @@ import numpy as np
 import os
 import glob
 from sklearn.utils.class_weight import compute_class_weight
-
 from torchvision.transforms import ToTensor, ToPILImage
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+
+def calculate_metrics(loader, model, device):
+    all_labels = []
+    all_preds = []
+    with torch.no_grad():
+        for images, labels in loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    precision = precision_score(all_labels, all_preds, average='macro')
+    recall = recall_score(all_labels, all_preds, average='macro')
+    f1 = f1_score(all_labels, all_preds, average='macro')
+    return precision, recall, f1
 
 
 def add_noise(img):
@@ -60,7 +78,7 @@ class GestureDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image = Image.open(self.images[idx])
+        image = Image.open(self.images[idx]).convert('L')  # 转为灰度图
         label = self.labels[idx]
         if self.transform:
             image = self.transform(image)
@@ -73,6 +91,7 @@ class GestureCNN(nn.Module):
         # 加载预训练的 ResNet-18 模型
         self.model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
         num_ftrs = self.model.fc.in_features
+        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         # 添加Dropout层
         self.dropout1 = nn.Dropout(0.5)
@@ -149,9 +168,10 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
             loss.backward()
             optimizer.step()
 
-        model.eval()
         val_accuracy = calculate_accuracy(val_loader, model, device)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Validation Accuracy: {val_accuracy}%')
+        precision, recall, f1 = calculate_metrics(val_loader, model, device)
+        print(
+            f'Epoch {epoch + 1}/{num_epochs}, Val Accuracy: {val_accuracy}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1}')
 
         # 早停逻辑
         if val_accuracy > best_val_accuracy:
