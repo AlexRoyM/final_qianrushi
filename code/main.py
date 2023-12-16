@@ -13,6 +13,7 @@ TCP_PORT = 1234
 # 定义相同的转换操作，与训练时相同
 transform = transforms.Compose([
     transforms.Resize((224, 224)),  # 根据模型需要调整大小
+    transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor()
 ])
 
@@ -51,7 +52,7 @@ class TCPServer:
 
 
 def predict_image(image_data, model):
-    image = Image.open(io.BytesIO(image_data))
+    image = Image.open(io.BytesIO(image_data)).convert('L')  # 转换为灰度图
     image = transform(image).unsqueeze(0)  # 增加一个批次维度
     model.eval()  # 设置模型为评估模式
     with torch.no_grad():  # 不计算梯度
@@ -63,8 +64,8 @@ def predict_image(image_data, model):
 def show_image_with_prediction(image, prediction):
     # 转换张量格式以适应matplotlib
     image = image.squeeze(0)  # 移除批次维度
-    image = image.permute(1, 2, 0)  # 改变通道顺序
     image = image.numpy()  # 转换为numpy数组
+    plt.imshow(image, cmap='gray')  # 使用灰度色彩映射
 
     plt.imshow(image)
     plt.title(f"Predicted: {prediction}")
@@ -79,7 +80,7 @@ def save_image(image_data, file_name):
 def main():
     # 加载模型
     model = resnet_18.GestureCNN()
-    model.load_state_dict(torch.load('../model/resnet18.pth'))
+    model.load_state_dict(torch.load('../model/resnet18_1.pth'))
     model.eval()  # 设置为评估模式
 
     tcp_server = TCPServer(TCP_IP, TCP_PORT)
@@ -87,7 +88,7 @@ def main():
 
     try:
         send_char = 0
-        for i in range(50):
+        for i in range(500):
             image_size_data = tcp_server.receive_exact_size(4)
             if image_size_data is None:
                 break

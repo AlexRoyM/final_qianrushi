@@ -148,11 +148,11 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, early_s
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     # 冻结 layer1 和 layer2
     for name, param in model.named_parameters():
-        # param.requires_grad = True
-        if "layer1" in name or "layer2" in name:
-            param.requires_grad = False
-        else:
-            param.requires_grad = True
+        param.requires_grad = True
+        # if "layer1" in name or "layer2" in name:
+        #     param.requires_grad = False
+        # else:
+        #     param.requires_grad = True
     optimizer = optim.Adam(model.parameters(), lr=0.00005, weight_decay=0.01)  # 添加 weight_decay 参数
     best_val_accuracy = 0
     patience_counter = 0
@@ -204,7 +204,9 @@ def predict_and_plot_examples(model, dataset, device, num_images=30):
     plt.figure(figsize=(20, 10))
     for i in range(num_images):
         plt.subplot(2, num_images // 2, i + 1)
-        plt.imshow(images[i].permute(1, 2, 0))
+        # 将单通道图像重复三次以形成三通道图像
+        img = images[i].repeat(3, 1, 1).permute(1, 2, 0)
+        plt.imshow(img, cmap='gray')  # 使用灰度色彩映射
         plt.title(f'{predicted[i].item()}')
         plt.axis('off')
     plt.show()
@@ -233,7 +235,7 @@ def main():
     trained_model = train_model(model, train_loader, val_loader, device)
 
     # 保存模型的状态字典
-    torch.save(trained_model.state_dict(), '../model/resnet18_1.pth')
+    torch.save(trained_model.state_dict(), '../model/resnet18_2.pth')
 
     # 使用此函数进行预测和绘图
     predict_and_plot_examples(model, dataset, device)
